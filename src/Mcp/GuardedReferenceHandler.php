@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace DocsMcp\Mcp;
 
-use DocsMcp\Domain\ResourceId;
+use DocsMcp\Domain\Drive\DriveId;
+use DocsMcp\Domain\Error\DocsError;
 use DocsMcp\Mcp\Audit\StdoutJsonAuditLogger;
 use DocsMcp\Mcp\RateLimit\FileRateLimiter;
 use InvalidArgumentException;
@@ -55,7 +56,7 @@ final readonly class GuardedReferenceHandler implements ReferenceHandlerInterfac
         } catch (ToolCallException $e) {
             $this->auditLogger->log($tool, $documentId, 'error', $this->elapsedMs($started), errorClass: $e::class);
             throw new ToolCallException($this->publicMessage($e), 0, $e);
-        } catch (InvalidArgumentException $e) {
+        } catch (DocsError|InvalidArgumentException $e) {
             $this->auditLogger->log($tool, $documentId, 'error', $this->elapsedMs($started), errorClass: $e::class);
             throw new ToolCallException($this->publicMessage($e), 0, $e);
         } catch (Throwable $e) {
@@ -74,7 +75,7 @@ final readonly class GuardedReferenceHandler implements ReferenceHandlerInterfac
         }
 
         $value = $arguments['document_id'];
-        if (!is_string($value) || !ResourceId::isValid($value)) {
+        if (!is_string($value) || !DriveId::isValid($value)) {
             return null;
         }
 

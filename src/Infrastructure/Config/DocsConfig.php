@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DocsMcp\Infrastructure\Config;
 
-use DocsMcp\Domain\ResourceId;
+use DocsMcp\Domain\Drive\DriveId;
 use InvalidArgumentException;
 
 final readonly class DocsConfig
@@ -53,7 +53,7 @@ final readonly class DocsConfig
         }
 
         $rootFolderId = self::optionalString($env, 'DOCS_ROOT_FOLDER_ID') ?? '';
-        if (!ResourceId::isValid($rootFolderId)) {
+        if (!DriveId::isValid($rootFolderId)) {
             $errors[] = 'DOCS_ROOT_FOLDER_ID must match ' . self::patternSource();
             $rootFolderId = '';
         }
@@ -166,7 +166,7 @@ final readonly class DocsConfig
             if ($id === '') {
                 continue;
             }
-            if (!ResourceId::isValid($id)) {
+            if (!DriveId::isValid($id)) {
                 throw new InvalidArgumentException('DOCS_APPEND_ALLOWED_IDS');
             }
             if (!in_array($id, $ids, true)) {
@@ -240,6 +240,6 @@ final readonly class DocsConfig
 
     private static function patternSource(): string
     {
-        return trim(ResourceId::PATTERN, '/');
+        return trim(DriveId::PATTERN, '/');
     }
 }
