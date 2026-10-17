@@ -38,6 +38,12 @@ final class RootFolderPolicy
             throw new OutsideAllowedFolder();
         }
 
+        // Shortcuts point at a separate targetId; parent walk only proves the
+        // shortcut file's location, not the target. Reject early.
+        if ($item->mimeType === DriveMimeType::SHORTCUT) {
+            throw new OutsideAllowedFolder();
+        }
+
         if ($item->id->equals($this->rootFolderId)) {
             return $item;
         }

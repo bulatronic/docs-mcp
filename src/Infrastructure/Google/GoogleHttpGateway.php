@@ -23,6 +23,8 @@ final class GoogleHttpGateway
 
     private const string METADATA_FIELDS = 'id,name,mimeType,parents,trashed,modifiedTime';
 
+    private const int MAX_PAGE_SIZE = 1000;
+
     public function __construct(
         private HttpClientInterface $httpClient,
         private GoogleAccessTokenProvider $tokenProvider,
@@ -41,6 +43,9 @@ final class GoogleHttpGateway
     }
 
     /**
+     * Lists a single page of files. Pagination tokens are never followed —
+     * callers must not walk result pages unboundedly.
+     *
      * @return array<string, mixed>
      */
     public function listFiles(string $q, int $pageSize): array
@@ -49,7 +54,7 @@ final class GoogleHttpGateway
         $query = [
             'q' => $q,
             'fields' => 'files(' . self::METADATA_FIELDS . ')',
-            'pageSize' => max(1, $pageSize),
+            'pageSize' => max(1, min($pageSize, self::MAX_PAGE_SIZE)),
         ];
 
         return $this->requestJson('GET', $url, $query);

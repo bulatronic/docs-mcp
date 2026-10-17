@@ -134,7 +134,7 @@ final class RootFolderPolicyTest extends TestCase
         $this->policy->assertInsideRoot($docId);
     }
 
-    public function testShortcutIsRejectedByAssertIsDocument(): void
+    public function testShortcutIsRejectedByAssertInsideRoot(): void
     {
         $shortcutId = new DriveId('shortcut01');
         $shortcut = new DriveItem(
@@ -147,10 +147,12 @@ final class RootFolderPolicyTest extends TestCase
         );
         $this->reader->add($shortcut);
 
-        $item = $this->policy->assertInsideRoot($shortcutId);
-
-        $this->expectException(OutsideAllowedFolder::class);
-        $this->policy->assertIsDocument($item);
+        try {
+            $this->policy->assertInsideRoot($shortcutId);
+            self::fail('Expected OutsideAllowedFolder');
+        } catch (OutsideAllowedFolder $e) {
+            self::assertSame(PublicErrorMessage::NOT_FOUND_OR_OUTSIDE_ROOT, $e->getMessage());
+        }
     }
 
     public function testInvalidDriveIdThrowsInvalidArgument(): void

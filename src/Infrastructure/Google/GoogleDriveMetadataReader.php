@@ -6,10 +6,18 @@ namespace DocsMcp\Infrastructure\Google;
 
 use DocsMcp\Domain\Drive\DriveId;
 use DocsMcp\Domain\Drive\DriveItem;
+use DocsMcp\Domain\Drive\DriveMimeType;
 use DocsMcp\Ports\DriveMetadataReader;
+use InvalidArgumentException;
 
 final readonly class GoogleDriveMetadataReader implements DriveMetadataReader
 {
+    /** @var list<string> */
+    private const array ALLOWED_LIST_MIME_TYPES = [
+        DriveMimeType::DOCUMENT,
+        DriveMimeType::FOLDER,
+    ];
+
     public function __construct(
         private GoogleHttpGateway $gateway,
         private DriveItemMapper $mapper = new DriveItemMapper(),
@@ -33,6 +41,9 @@ final readonly class GoogleDriveMetadataReader implements DriveMetadataReader
         $q = sprintf("'%s' in parents and trashed=false", $folderId->value);
 
         if ($mimeType !== null && $mimeType !== '') {
+            if (!in_array($mimeType, self::ALLOWED_LIST_MIME_TYPES, true)) {
+                throw new InvalidArgumentException('mimeType is not allowlisted for listChildren');
+            }
             $q .= sprintf(" and mimeType='%s'", DriveQueryEscaper::escapeLiteral($mimeType));
         }
 

@@ -29,6 +29,11 @@ final class DriveNameQuery
             return '';
         }
 
+        // Reject control characters so they cannot break or inject into Drive q=.
+        if (preg_match('/[\p{C}]/u', $trimmed) === 1) {
+            throw new InvalidArgumentException('query must not contain control characters');
+        }
+
         if (mb_strlen($trimmed) > self::MAX_LENGTH) {
             throw new InvalidArgumentException(sprintf(
                 'query must be at most %d characters',
