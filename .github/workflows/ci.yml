@@ -159,7 +159,8 @@ jobs:
 
       - name: Assert process runs as non-root
         run: |
-          uid="$(docker run --rm --entrypoint id -u docs-mcp:ci)"
+          # --entrypoint id; -u is an argument to id, not docker --user
+          uid="$(docker run --rm --entrypoint id docs-mcp:ci -u)"
           test "$uid" != '0'
           echo "uid=${uid}"
 
