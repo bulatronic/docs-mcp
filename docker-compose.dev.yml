@@ -1,0 +1,19 @@
+services:
+  docs-mcp:
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./:/app
+    environment:
+      MCP_SESSION_DIR: /var/mcp-sessions
+
+  # Composer is not in the runtime image; use this for install/update on the bind mount.
+  # Only starts with: docker compose --profile tools run --rm composer …
+  composer:
+    profiles: [ "tools" ]
+    image: composer:2
+    working_dir: /app
+    volumes:
+      - ./:/app
+    user: "${COMPOSE_UID:-1000}:${COMPOSE_GID:-1000}"
+    entrypoint: [ "composer" ]

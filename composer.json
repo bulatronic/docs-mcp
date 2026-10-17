@@ -1,0 +1,42 @@
+{
+    "name": "docs-mcp/docs-mcp",
+    "description": "MCP server for reading Google Docs and appending text inside one Drive folder",
+    "type": "project",
+    "license": "Unlicense",
+    "require": {
+        "php": "^8.5",
+        "mcp/sdk": "^0.8",
+        "nyholm/psr7": "^1.8",
+        "nyholm/psr7-server": "^1.1",
+        "symfony/finder": "^7.3 || ^8.0"
+    },
+    "require-dev": {
+        "deptrac/deptrac": "^4.7",
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^11.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "DocsMcp\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DocsMcp\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "cs-check": "php-cs-fixer check --diff --config=.php-cs-fixer.dist.php",
+        "cs-fix": "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
+        "deptrac": "deptrac analyse --config-file=deptrac.yaml --cache-file=/tmp/docs-mcp-deptrac.cache",
+        "phpstan": "phpstan analyse",
+        "test": "phpunit"
+    }
+}

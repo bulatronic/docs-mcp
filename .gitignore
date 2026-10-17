@@ -1,0 +1,24 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Cursor
+.cursor/
+.ai-factory/
+
+# PHP
+composer.lock.bak
+.phpunit.result.cache
+.phpunit.cache/
+.php-cs-fixer.cache
+.env
+.env.*
+!.env.example
+/.env
+/vendor/
+/.phpunit.cache/
+/.phpstan.cache/
+/.deptrac.cache
+/var/
+*.log

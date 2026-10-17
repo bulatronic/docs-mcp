@@ -1,0 +1,34 @@
+services:
+  docs-mcp:
+    container_name: docs-mcp
+    image: docs-mcp:local
+    build:
+      context: .
+      target: runtime
+    user: "10001:10001"
+    expose:
+      - "8080"
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777
+      - /var/mcp-sessions:mode=1777
+      - /config:mode=1777
+      - /data:mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - .env
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
+      DOCS_ROOT_FOLDER_ID: ${DOCS_ROOT_FOLDER_ID:-}
+      DOCS_WRITE_ENABLED: ${DOCS_WRITE_ENABLED:-false}
+      DOCS_APPEND_ALLOWED_IDS: ${DOCS_APPEND_ALLOWED_IDS:-}
+      DOCS_MAX_READ_CHARS: ${DOCS_MAX_READ_CHARS:-20000}
+      DOCS_MAX_APPEND_CHARS: ${DOCS_MAX_APPEND_CHARS:-5000}
+      TZ: ${TZ:-UTC}
+      MCP_SESSION_DIR: /var/mcp-sessions
+      SERVER_NAME: ":8080"
+      XDG_CONFIG_HOME: /config
+      XDG_DATA_HOME: /data

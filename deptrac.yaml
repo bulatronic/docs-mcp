@@ -1,0 +1,50 @@
+deptrac:
+  paths:
+    - ./src
+  exclude_files:
+    - '#.*Test\.php$#'
+  layers:
+    - name: Domain
+      collectors:
+        - type: directory
+          value: src/Domain/.*
+
+    - name: Ports
+      collectors:
+        - type: directory
+          value: src/Ports/.*
+
+    - name: Application
+      collectors:
+        - type: directory
+          value: src/Application/.*
+
+    - name: Infrastructure
+      collectors:
+        - type: directory
+          value: src/Infrastructure/.*
+
+    - name: Mcp
+      collectors:
+        - type: directory
+          value: src/Mcp/.*
+        - type: composer
+          private: true
+          composerPath: composer.json
+          composerLockPath: composer.lock
+          packages:
+            - mcp/sdk
+
+  ruleset:
+    Domain: ~
+    Ports:
+      - Domain
+    Application:
+      - Domain
+      - Ports
+    Infrastructure:
+      - Domain
+      - Ports
+    Mcp:
+      - Application
+      - Domain
