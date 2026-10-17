@@ -1,0 +1,56 @@
+# Фрагмент сервиса docs-mcp для общего compose-файла picoclaw
+# (по образцу mail-mcp в picoclaw-stack).
+#
+# Перед подключением:
+#   1. Положите JSON сервисного аккаунта в ../docs-mcp/secrets/google_sa.json
+#      (каталог 0700, файл 0444 — см. README docs-mcp).
+#   2. Заполните ../docs-mcp/.env (DOCS_ROOT_FOLDER_ID и др.).
+#   3. MCP endpoint для агента: http://docs-mcp:8080/mcp
+#
+# secrets: объявите на верхнем уровне того же compose-файла
+# (или оставьте блок ниже, если файл подключается как include).
+
+secrets:
+  docs_mcp_google_sa:
+    file: ../docs-mcp/secrets/google_sa.json
+
+services:
+  docs-mcp:
+    build:
+      context: ../docs-mcp
+      dockerfile: Dockerfile
+      target: runtime
+    image: docs-mcp:local
+    container_name: docs-mcp
+    user: "10001:10001"
+    env_file:
+      - ../docs-mcp/.env
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/google_sa.json
+      DOCS_ROOT_FOLDER_ID: ${DOCS_ROOT_FOLDER_ID:-}
+      DOCS_WRITE_ENABLED: ${DOCS_WRITE_ENABLED:-false}
+      DOCS_APPEND_ALLOWED_IDS: ${DOCS_APPEND_ALLOWED_IDS:-}
+      DOCS_MAX_READ_CHARS: ${DOCS_MAX_READ_CHARS:-20000}
+      DOCS_MAX_APPEND_CHARS: ${DOCS_MAX_APPEND_CHARS:-5000}
+      TZ: ${TZ:-UTC}
+      MCP_SESSION_DIR: /var/mcp-sessions
+      SERVER_NAME: ":8080"
+      XDG_CONFIG_HOME: /config
+      XDG_DATA_HOME: /data
+    expose:
+      - "8080"
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777
+      - /var/mcp-sessions:mode=1777
+      - /config:mode=1777
+      - /data:mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    secrets:
+      - source: docs_mcp_google_sa
+        target: google_sa.json
+        mode: 0444
+    restart: unless-stopped

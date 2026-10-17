@@ -15,9 +15,11 @@ deptrac.yaml
 .env
 .env.*
 !.env.example
+secrets/
 var/
 vendor/
 node_modules/
 .phpunit.cache
 .phpstan.cache
 *.log
+

@@ -22,3 +22,7 @@ composer.lock.bak
 /.deptrac.cache
 /var/
 *.log
+
+# Google service account key (compose secret). Keep directory, ignore JSON.
+/secrets/*
+!/secrets/.gitkeep

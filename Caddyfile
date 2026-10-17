@@ -6,7 +6,14 @@
 }
 
 {$SERVER_NAME::8080} {
-	root * /app/public
-	encode zstd br gzip
-	php_server
+	# Only the MCP endpoint is public. bin/smoke.php lives outside public/ and is CLI-only.
+	handle /mcp* {
+		root * /app/public
+		encode zstd br gzip
+		php_server
+	}
+
+	handle {
+		respond "Not Found" 404
+	}
 }
