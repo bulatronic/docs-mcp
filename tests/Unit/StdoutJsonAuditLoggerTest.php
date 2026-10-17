@@ -82,4 +82,33 @@ final class StdoutJsonAuditLoggerTest extends TestCase
         $logger->log('list_documents', null, 'ok', 1);
         self::assertTrue(true);
     }
+
+    /**
+     * @throws \JsonException
+     */
+    public function testAppendedCharsIncludedWithoutTextPayload(): void
+    {
+        $stream = fopen('php://memory', 'r+');
+        self::assertNotFalse($stream);
+
+        $logger = new StdoutJsonAuditLogger($stream);
+        $logger->log(
+            'append_to_document',
+            'allowedDoc1',
+            'ok',
+            4,
+            '2026-10-17T09:00:00+00:00',
+            appendedChars: 42,
+        );
+
+        rewind($stream);
+        $line = trim((string) stream_get_contents($stream));
+        fclose($stream);
+
+        $decoded = json_decode($line, true, 512, \JSON_THROW_ON_ERROR);
+        self::assertSame(42, $decoded['appended_chars']);
+        self::assertSame('ok', $decoded['status']);
+        self::assertArrayNotHasKey('text', $decoded);
+        self::assertArrayNotHasKey('content', $decoded);
+    }
 }

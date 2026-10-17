@@ -38,6 +38,7 @@ final class StdoutJsonAuditLogger
         int $durationMs,
         ?string $time = null,
         ?string $errorClass = null,
+        ?int $appendedChars = null,
     ): void {
         $payload = [
             'time' => $time ?? gmdate('c'),
@@ -46,6 +47,10 @@ final class StdoutJsonAuditLogger
             'status' => $status,
             'duration_ms' => $durationMs,
         ];
+
+        if ($appendedChars !== null) {
+            $payload['appended_chars'] = $appendedChars;
+        }
 
         if ($status === 'error' && $errorClass !== null && $errorClass !== '') {
             $payload['error_class'] = $errorClass;

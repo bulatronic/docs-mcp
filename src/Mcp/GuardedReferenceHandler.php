@@ -50,7 +50,13 @@ final readonly class GuardedReferenceHandler implements ReferenceHandlerInterfac
 
         try {
             $result = $this->inner->handle($reference, $arguments);
-            $this->auditLogger->log($tool, $documentId, 'ok', $this->elapsedMs($started));
+            $this->auditLogger->log(
+                $tool,
+                $documentId,
+                'ok',
+                $this->elapsedMs($started),
+                appendedChars: $this->extractAppendedChars($result),
+            );
 
             return $result;
         } catch (ToolCallException $e) {
@@ -80,6 +86,17 @@ final readonly class GuardedReferenceHandler implements ReferenceHandlerInterfac
         }
 
         return $value;
+    }
+
+    private function extractAppendedChars(mixed $result): ?int
+    {
+        if (!is_array($result)) {
+            return null;
+        }
+
+        $value = $result['appended_chars'] ?? null;
+
+        return is_int($value) ? $value : null;
     }
 
     private function elapsedMs(int $startedHrtime): int

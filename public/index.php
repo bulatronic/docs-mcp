@@ -5,17 +5,21 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use DocsMcp\Application\Policy\RootFolderPolicy;
+use DocsMcp\Application\Time\SystemClock;
+use DocsMcp\Application\UseCase\AppendToDocument;
 use DocsMcp\Application\UseCase\GetDocumentContent;
 use DocsMcp\Application\UseCase\ListDocuments;
 use DocsMcp\Domain\Drive\DriveId;
 use DocsMcp\Infrastructure\Config\DocsConfig;
 use DocsMcp\Infrastructure\Google\GoogleAccessTokenProvider;
+use DocsMcp\Infrastructure\Google\GoogleDocumentAppender;
 use DocsMcp\Infrastructure\Google\GoogleDocumentTextReader;
 use DocsMcp\Infrastructure\Google\GoogleDriveMetadataReader;
 use DocsMcp\Infrastructure\Google\GoogleHttpGateway;
 use DocsMcp\Mcp\Audit\StdoutJsonAuditLogger;
 use DocsMcp\Mcp\GuardedReferenceHandler;
 use DocsMcp\Mcp\RateLimit\FileRateLimiter;
+use DocsMcp\Ports\DocumentAppender;
 use DocsMcp\Ports\DocumentTextReader;
 use DocsMcp\Ports\DriveMetadataReader;
 use InvalidArgumentException;
@@ -85,17 +89,29 @@ $tokenProvider = new GoogleAccessTokenProvider(
 $gateway = new GoogleHttpGateway(HttpClient::create(), $tokenProvider);
 $metadataReader = new GoogleDriveMetadataReader($gateway);
 $textReader = new GoogleDocumentTextReader($gateway);
+$documentAppender = new GoogleDocumentAppender($gateway);
 $policy = new RootFolderPolicy($metadataReader, $rootFolderId);
 $listDocuments = new ListDocuments($metadataReader, $policy, $rootFolderId);
 $getDocumentContent = new GetDocumentContent($textReader, $policy, $config->maxReadChars);
+$appendToDocument = new AppendToDocument(
+    $documentAppender,
+    $metadataReader,
+    $policy,
+    new SystemClock(),
+    $config->writeEnabled,
+    $config->appendAllowedIds,
+    $config->maxAppendChars,
+);
 
 $container = new Container();
 $container->set(DocsConfig::class, $config);
 $container->set(DriveMetadataReader::class, $metadataReader);
 $container->set(DocumentTextReader::class, $textReader);
+$container->set(DocumentAppender::class, $documentAppender);
 $container->set(RootFolderPolicy::class, $policy);
 $container->set(ListDocuments::class, $listDocuments);
 $container->set(GetDocumentContent::class, $getDocumentContent);
+$container->set(AppendToDocument::class, $appendToDocument);
 
 $referenceHandler = new GuardedReferenceHandler(
     new ReferenceHandler($container),

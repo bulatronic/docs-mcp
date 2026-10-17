@@ -18,6 +18,7 @@ use SplFileInfo;
 final class ToolCatalogSnapshotTest extends TestCase
 {
     private const array EXPECTED_TOOLS = [
+        'append_to_document',
         'get_document_content',
         'list_documents',
     ];

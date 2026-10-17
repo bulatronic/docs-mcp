@@ -78,7 +78,7 @@ $tokenProvider = new GoogleAccessTokenProvider(
 $gateway = new GoogleHttpGateway(HttpClient::create(), $tokenProvider);
 $metadata = new GoogleDriveMetadataReader($gateway);
 $textReader = new GoogleDocumentTextReader($gateway);
-$appender = new GoogleDocumentAppender($gateway, $config);
+$appender = new GoogleDocumentAppender($gateway);
 
 $rootId = new DriveId($config->rootFolderId);
 
