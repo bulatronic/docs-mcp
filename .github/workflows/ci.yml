@@ -285,7 +285,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Hadolint
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile
           # Fail on warning+; info (e.g. DL3066 non-numeric USER) does not fail.
