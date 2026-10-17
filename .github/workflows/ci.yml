@@ -1,6 +1,6 @@
 # Pin GitHub Actions by major version for readability.
 # To pin by commit SHA (recommended for high-assurance CI), replace e.g.
-#   uses: actions/checkout@v4
+#   uses: actions/checkout@v7
 # with:
 #   uses: actions/checkout@<full-commit-sha> # v4.x.x
 # Resolve SHA via: gh api repos/actions/checkout/commits/v4 --jq .sha
@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: README bilingual structure
         run: |
@@ -110,7 +110,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP 8.5
         uses: shivammathur/setup-php@v2
@@ -148,7 +148,7 @@ jobs:
       actions: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -282,7 +282,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Hadolint
         uses: hadolint/hadolint-action@v3.1.0
@@ -299,7 +299,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
