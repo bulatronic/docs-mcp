@@ -23,6 +23,15 @@ deptrac:
       collectors:
         - type: directory
           value: src/Infrastructure/.*
+        - type: composer
+          private: true
+          composerPath: composer.json
+          composerLockPath: composer.lock
+          packages:
+            - google/auth
+            - symfony/http-client
+            - symfony/cache
+            - psr/cache
 
     - name: Mcp
       collectors:

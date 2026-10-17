@@ -6,8 +6,8 @@ namespace DocsMcp\Domain\Error;
 
 final class UpstreamRejected extends DocsError
 {
-    public function __construct()
+    public function __construct(string $message = 'Upstream service rejected the request')
     {
-        parent::__construct('Upstream service rejected the request');
+        parent::__construct($message);
     }
 }

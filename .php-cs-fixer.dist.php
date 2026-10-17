@@ -9,6 +9,7 @@ $finder = new PhpCsFixer\Finder()
         __DIR__.'/src',
         __DIR__.'/tests',
         __DIR__.'/public',
+        __DIR__.'/bin',
     ]);
 
 return new PhpCsFixer\Config()
