@@ -41,7 +41,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
@@ -49,7 +49,7 @@ jobs:
             ${{ runner.os }}-composer-
 
       - name: Cache PHPStan
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /tmp/docs-mcp-phpstan
           key: ${{ runner.os }}-phpstan-${{ hashFiles('**/composer.lock', 'phpstan.neon', 'src/**/*.php', 'public/**/*.php', 'bin/**/*.php') }}
@@ -57,7 +57,7 @@ jobs:
             ${{ runner.os }}-phpstan-
 
       - name: Cache Deptrac
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /tmp/docs-mcp-deptrac.cache
           key: ${{ runner.os }}-deptrac-${{ hashFiles('**/composer.lock', 'deptrac.yaml', 'src/**/*.php') }}
@@ -65,7 +65,7 @@ jobs:
             ${{ runner.os }}-deptrac-
 
       - name: Cache PHP CS Fixer
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /tmp/docs-mcp-php-cs-fixer.cache
           key: ${{ runner.os }}-php-cs-fixer-${{ hashFiles('**/composer.lock', '.php-cs-fixer.dist.php', 'src/**/*.php', 'tests/**/*.php', 'public/**/*.php', 'bin/**/*.php') }}
@@ -111,7 +111,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
