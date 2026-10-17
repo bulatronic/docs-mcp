@@ -28,6 +28,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: README bilingual structure
+        run: |
+          set -euo pipefail
+          file=README.md
+          grep -q '<a id="russian"></a>' "$file"
+          grep -q '<a id="english"></a>' "$file"
+          grep -q '<a id="russian-english-switch"></a>' "$file"
+          # Count ## headings between language anchors (same structure both sides).
+          ru=$(awk '/<a id="russian"><\/a>/{p=1; next} /<a id="english"><\/a>/{p=0} p && /^## /{c++} END{print c+0}' "$file")
+          en=$(awk '/<a id="english"><\/a>/{p=1; next} p && /^## /{c++} END{print c+0}' "$file")
+          echo "russian_h2=${ru} english_h2=${en}"
+          test "$ru" -gt 0
+          test "$ru" -eq "$en"
+
       - name: Setup PHP 8.5
         uses: shivammathur/setup-php@v2
         with:
