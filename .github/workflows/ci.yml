@@ -1,0 +1,297 @@
+# Pin GitHub Actions by major version for readability.
+# To pin by commit SHA (recommended for high-assurance CI), replace e.g.
+#   uses: actions/checkout@v4
+# with:
+#   uses: actions/checkout@<full-commit-sha> # v4.x.x
+# Resolve SHA via: gh api repos/actions/checkout/commits/v4 --jq .sha
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  php-checks:
+    name: php-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Cache PHPStan
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docs-mcp-phpstan
+          key: ${{ runner.os }}-phpstan-${{ hashFiles('**/composer.lock', 'phpstan.neon', 'src/**/*.php', 'public/**/*.php', 'bin/**/*.php') }}
+          restore-keys: |
+            ${{ runner.os }}-phpstan-
+
+      - name: Cache Deptrac
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docs-mcp-deptrac.cache
+          key: ${{ runner.os }}-deptrac-${{ hashFiles('**/composer.lock', 'deptrac.yaml', 'src/**/*.php') }}
+          restore-keys: |
+            ${{ runner.os }}-deptrac-
+
+      - name: Cache PHP CS Fixer
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docs-mcp-php-cs-fixer.cache
+          key: ${{ runner.os }}-php-cs-fixer-${{ hashFiles('**/composer.lock', '.php-cs-fixer.dist.php', 'src/**/*.php', 'tests/**/*.php', 'public/**/*.php', 'bin/**/*.php') }}
+          restore-keys: |
+            ${{ runner.os }}-php-cs-fixer-
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: PHPUnit
+        run: composer test
+
+      - name: PHPStan
+        run: composer phpstan
+
+      - name: Deptrac
+        run: composer deptrac
+
+      - name: PHP CS Fixer
+        run: composer cs-check
+
+  composer-audit:
+    name: composer-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Composer audit
+        run: composer audit
+
+  docker-build:
+    name: docker-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # GHA build cache needs write to the actions cache API.
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build runtime image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          load: true
+          push: false
+          tags: docs-mcp:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Assert no PHPUnit in runtime image
+        run: |
+          if docker run --rm --entrypoint sh docs-mcp:ci -c 'test -e vendor/bin/phpunit'; then
+            echo 'vendor/bin/phpunit must not exist in the runtime image' >&2
+            exit 1
+          fi
+
+      - name: Assert process runs as non-root
+        run: |
+          uid="$(docker run --rm --entrypoint id -u docs-mcp:ci)"
+          test "$uid" != '0'
+          echo "uid=${uid}"
+
+      - name: Generate fake service-account JSON
+        run: |
+          mkdir -p /tmp/docs-mcp-ci
+          openssl genrsa -out /tmp/docs-mcp-ci/key.pem 2048
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          key = Path("/tmp/docs-mcp-ci/key.pem").read_text()
+          Path("/tmp/docs-mcp-ci/google_sa.json").write_text(json.dumps({
+              "type": "service_account",
+              "project_id": "ci",
+              "private_key_id": "ci",
+              "private_key": key,
+              "client_email": "ci@ci.iam.gserviceaccount.com",
+              "client_id": "1",
+              "token_uri": "https://oauth2.googleapis.com/token",
+          }))
+          PY
+          # Suppress PHP warnings that would break MCP session headers (app code unchanged).
+          printf 'display_errors=Off\n' > /tmp/docs-mcp-ci/zz-ci.ini
+
+      - name: Smoke tools/list (fake SA, no Google network)
+        run: |
+          set -euo pipefail
+          CID="$(docker run -d --rm \
+            -e GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/google_sa.json \
+            -e DOCS_ROOT_FOLDER_ID=abc123XYZ_- \
+            -e DOCS_WRITE_ENABLED=false \
+            -e MCP_SESSION_DIR=/tmp/mcp-sessions \
+            -e SERVER_NAME=:8080 \
+            -e XDG_CONFIG_HOME=/tmp/config \
+            -e XDG_DATA_HOME=/tmp/data \
+            --tmpfs /tmp:mode=1777 \
+            -v /tmp/docs-mcp-ci/google_sa.json:/run/secrets/google_sa.json:ro \
+            -v /tmp/docs-mcp-ci/zz-ci.ini:/usr/local/etc/php/conf.d/zz-ci.ini:ro \
+            -p 127.0.0.1:18080:8080 \
+            docs-mcp:ci)"
+          cleanup() { docker stop "$CID" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null -X POST http://127.0.0.1:18080/mcp \
+              -H 'Content-Type: application/json' \
+              -H 'Accept: application/json, text/event-stream' \
+              -H 'Host: 127.0.0.1' \
+              -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}'; then
+              break
+            fi
+            sleep 1
+            if [ "$i" -eq 30 ]; then
+              echo 'MCP endpoint did not become ready' >&2
+              docker logs "$CID" >&2 || true
+              exit 1
+            fi
+          done
+
+          HDRS="$(mktemp)"
+          BODY="$(mktemp)"
+          curl -sS -D "$HDRS" -o "$BODY" -X POST http://127.0.0.1:18080/mcp \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json, text/event-stream' \
+            -H 'Host: 127.0.0.1' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}'
+          SESSION="$(awk 'BEGIN{IGNORECASE=1} /^mcp-session-id:/{print $2}' "$HDRS" | tr -d '\r')"
+          test -n "$SESSION"
+
+          curl -sS -o /dev/null -X POST http://127.0.0.1:18080/mcp \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json, text/event-stream' \
+            -H "Mcp-Session-Id: ${SESSION}" \
+            -H 'Host: 127.0.0.1' \
+            -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+
+          TOOLS_BODY="$(mktemp)"
+          curl -sS -o "$TOOLS_BODY" -X POST http://127.0.0.1:18080/mcp \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json, text/event-stream' \
+            -H "Mcp-Session-Id: ${SESSION}" \
+            -H 'Host: 127.0.0.1' \
+            -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+
+          python3 - <<'PY' "$TOOLS_BODY"
+          import json, sys
+          path = sys.argv[1]
+          raw = open(path, encoding="utf-8").read()
+          if raw.lstrip().startswith("event:"):
+              data_lines = [ln[6:] for ln in raw.splitlines() if ln.startswith("data: ")]
+              payload = json.loads(data_lines[0])
+          else:
+              payload = json.loads(raw)
+          tools = payload["result"]["tools"]
+          names = sorted(t["name"] for t in tools)
+          expected = ["append_to_document", "get_document_content", "list_documents"]
+          if names != expected:
+              raise SystemExit(f"expected tools {expected}, got {names}")
+          print("tools_ok", ",".join(names))
+          PY
+
+  dockerfile-lint:
+    name: dockerfile-lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          # Fail on warning+; info (e.g. DL3066 non-numeric USER) does not fail.
+          # DL3025: HEALTHCHECK uses shell form for a one-line PHP probe (exec JSON is awkward).
+          failure-threshold: warning
+          ignore: DL3025
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks (full history)
+        # docker run instead of gitleaks-action — no org license required.
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo:ro" \
+            zricethezav/gitleaks:v8.24.0 \
+            detect --source=/repo --verbose

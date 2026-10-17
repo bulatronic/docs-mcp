@@ -1,5 +1,6 @@
 # docs-mcp
 
+[![CI](https://github.com/bulatronic/docs-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/bulatronic/docs-mcp/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.5-777BB4?style=flat&logo=php)](https://www.php.net/)
 [![MCP](https://img.shields.io/badge/MCP-Streamable%20HTTP-0A7EA4?style=flat)](https://modelcontextprotocol.io/)
 [![FrankenPHP](https://img.shields.io/badge/FrankenPHP-Ready-000000?style=flat)](https://frankenphp.dev/)
@@ -24,11 +25,11 @@
 
 ## Что умеет
 
-| Инструмент             | Назначение                                                                 |
-|------------------------|----------------------------------------------------------------------------|
+| Инструмент             | Назначение                                                                  |
+|------------------------|-----------------------------------------------------------------------------|
 | `list_documents`       | Список Google Docs в разрешённой папке (обход подпапок, опциональный query) |
-| `get_document_content` | Текст документа в конверте `untrusted` (`notice`, `truncated`, …)          |
-| `append_to_document`   | Дописать текст в конец документа из allowlist (не идемпотентно)            |
+| `get_document_content` | Текст документа в конверте `untrusted` (`notice`, `truncated`, …)           |
+| `append_to_document`   | Дописать текст в конец документа из allowlist (не идемпотентно)             |
 
 Новый инструмент без явного решения ломает snapshot-тест каталога.
 
@@ -113,6 +114,27 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile tools r
 
 Слои: `Mcp → Application → Ports ← Infrastructure`, Domain ни от кого не зависит (Deptrac).
 
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) на `push` в `main` и на `pull_request`:
+
+| Job               | Что проверяет                                                                                            |
+|-------------------|----------------------------------------------------------------------------------------------------------|
+| `php-checks`      | `composer validate --strict`, install, затем `composer test` / `phpstan` / `deptrac` / `cs-check`        |
+| `composer-audit`  | `composer audit` (уязвимости зависимостей)                                                               |
+| `docker-build`    | сборка target `runtime` (без push), нет `vendor/bin/phpunit`, uid ≠ 0, smoke `tools/list` с фиктивным SA |
+| `dockerfile-lint` | Hadolint (порог warning)                                                                                 |
+| `secret-scan`     | Gitleaks по полной истории (`docker run`, без gitleaks-action)                                           |
+
+Локально те же PHP-проверки:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile tools run --rm --entrypoint bash composer -c \
+  'composer validate --strict && composer test && composer phpstan && composer deptrac && composer cs-check && composer audit'
+```
+
+В настройках ветки `main` (required status checks) включите все пять job: `php-checks`, `composer-audit`, `docker-build`, `dockerfile-lint`, `secret-scan`.
+
 ## Проверка через MCP Inspector
 
 ```bash
@@ -171,12 +193,12 @@ http://docs-mcp:8080/mcp
 
 ### Известные ограничения
 
-| Ограничение | Комментарий |
-|-------------|-------------|
+| Ограничение              | Комментарий                                                                                       |
+|--------------------------|---------------------------------------------------------------------------------------------------|
 | SA + личный `@gmail.com` | Нельзя создавать файлы от имени SA (`storageQuotaExceeded`); документы для записи создаёт человек |
-| Вкладки Docs (tabs) | Не поддерживаются: читается только `body.content` |
-| Untrusted content | Текст документа — данные для модели, не инструкции |
-| Пагинация Drive | Один pageSize ≤ 1000 на list; `nextPageToken` не обходится |
+| Вкладки Docs (tabs)      | Не поддерживаются: читается только `body.content`                                                 |
+| Untrusted content        | Текст документа — данные для модели, не инструкции                                                |
+| Пагинация Drive          | Один pageSize ≤ 1000 на list; `nextPageToken` не обходится                                        |
 
 ## Сессии
 
