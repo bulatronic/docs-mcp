@@ -213,7 +213,7 @@ http://docs-mcp:8080/mcp
 
 ## Лицензия
 
-[Unlicense](https://unlicense.org/) — программное обеспечение в общественном достоянии.
+[Unlicense](https://unlicense.org/) — программное обеспечение в общественном достоянии: копируйте, меняйте, продавайте, используйте как угодно. Подробности в файле [`LICENSE`](LICENSE).
 
 [↑ Язык / Language](#russian-english-switch)
 
@@ -421,6 +421,6 @@ Uses **`FileSessionStore`** in `MCP_SESSION_DIR` (compatibility with MCP Inspect
 
 ## License
 
-[Unlicense](https://unlicense.org/) — software dedicated to the public domain.
+[Unlicense](https://unlicense.org/) — software dedicated to the public domain: copy, modify, sell, use as you wish. Details in the [`LICENSE`](LICENSE) file.
 
 [↑ Язык / Language](#russian-english-switch)
