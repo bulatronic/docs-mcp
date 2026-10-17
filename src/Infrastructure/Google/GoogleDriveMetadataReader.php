@@ -20,13 +20,26 @@ final readonly class GoogleDriveMetadataReader implements DriveMetadataReader
         return $this->mapper->fromFile($this->gateway->getFileMetadata($id));
     }
 
-    public function listChildren(DriveId $folderId, int $limit): array
-    {
+    public function listChildren(
+        DriveId $folderId,
+        int $limit,
+        ?string $nameContains = null,
+        ?string $mimeType = null,
+    ): array {
         // Ensure the folder exists (search alone returns [] for unknown parents).
         $this->getItem($folderId);
 
         // folderId is a validated DriveId ([A-Za-z0-9_-]+), safe inside single quotes.
         $q = sprintf("'%s' in parents and trashed=false", $folderId->value);
+
+        if ($mimeType !== null && $mimeType !== '') {
+            $q .= sprintf(" and mimeType='%s'", DriveQueryEscaper::escapeLiteral($mimeType));
+        }
+
+        if ($nameContains !== null && $nameContains !== '') {
+            $q .= sprintf(" and name contains '%s'", DriveQueryEscaper::escapeLiteral($nameContains));
+        }
+
         $payload = $this->gateway->listFiles($q, $limit);
 
         $files = $payload['files'] ?? [];

@@ -41,8 +41,12 @@ final class InMemoryDriveMetadataReader implements DriveMetadataReader
         return $this->items[$id->value];
     }
 
-    public function listChildren(DriveId $folderId, int $limit): array
-    {
+    public function listChildren(
+        DriveId $folderId,
+        int $limit,
+        ?string $nameContains = null,
+        ?string $mimeType = null,
+    ): array {
         if ($limit < 1) {
             return [];
         }
@@ -53,12 +57,31 @@ final class InMemoryDriveMetadataReader implements DriveMetadataReader
 
         $children = [];
         foreach ($this->items as $item) {
+            if ($item->trashed) {
+                continue;
+            }
+
+            $isChild = false;
             foreach ($item->parents as $parentId) {
                 if ($parentId->equals($folderId)) {
-                    $children[] = $item;
+                    $isChild = true;
                     break;
                 }
             }
+            if (!$isChild) {
+                continue;
+            }
+
+            if ($mimeType !== null && $mimeType !== '' && $item->mimeType !== $mimeType) {
+                continue;
+            }
+
+            if ($nameContains !== null && $nameContains !== ''
+                && mb_stripos($item->name, $nameContains) === false) {
+                continue;
+            }
+
+            $children[] = $item;
             if (count($children) >= $limit) {
                 break;
             }

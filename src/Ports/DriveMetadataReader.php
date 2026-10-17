@@ -20,11 +20,19 @@ interface DriveMetadataReader
     public function getItem(DriveId $id): DriveItem;
 
     /**
+     * @param ?string $nameContains Raw name substring; empty/null = no name filter. Adapter escapes for Drive q.
+     * @param ?string $mimeType If set, only items of this MIME type are returned.
+     *
      * @return list<DriveItem>
      *
      * @throws ItemNotFound
      * @throws UpstreamTemporary
      * @throws UpstreamRejected
      */
-    public function listChildren(DriveId $folderId, int $limit): array;
+    public function listChildren(
+        DriveId $folderId,
+        int $limit,
+        ?string $nameContains = null,
+        ?string $mimeType = null,
+    ): array;
 }

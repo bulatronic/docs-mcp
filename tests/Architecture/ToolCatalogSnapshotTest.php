@@ -17,7 +17,10 @@ use SplFileInfo;
  */
 final class ToolCatalogSnapshotTest extends TestCase
 {
-    private const array EXPECTED_TOOLS = [];
+    private const array EXPECTED_TOOLS = [
+        'get_document_content',
+        'list_documents',
+    ];
 
     public function testToolCatalogMatchesSnapshot(): void
     {

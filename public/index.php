@@ -4,10 +4,20 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use DocsMcp\Application\Policy\RootFolderPolicy;
+use DocsMcp\Application\UseCase\GetDocumentContent;
+use DocsMcp\Application\UseCase\ListDocuments;
+use DocsMcp\Domain\Drive\DriveId;
 use DocsMcp\Infrastructure\Config\DocsConfig;
+use DocsMcp\Infrastructure\Google\GoogleAccessTokenProvider;
+use DocsMcp\Infrastructure\Google\GoogleDocumentTextReader;
+use DocsMcp\Infrastructure\Google\GoogleDriveMetadataReader;
+use DocsMcp\Infrastructure\Google\GoogleHttpGateway;
 use DocsMcp\Mcp\Audit\StdoutJsonAuditLogger;
 use DocsMcp\Mcp\GuardedReferenceHandler;
 use DocsMcp\Mcp\RateLimit\FileRateLimiter;
+use DocsMcp\Ports\DocumentTextReader;
+use DocsMcp\Ports\DriveMetadataReader;
 use InvalidArgumentException;
 use Mcp\Capability\Registry\Container;
 use Mcp\Capability\Registry\ReferenceHandler;
@@ -20,6 +30,7 @@ use Nyholm\Psr7\Response;
 use Nyholm\Psr7Server\ServerRequestCreator;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
+use Symfony\Component\HttpClient\HttpClient;
 
 /*
  * Session strategy: FileSessionStore (MCP_SESSION_DIR).
@@ -66,8 +77,25 @@ if (!is_dir($sessionDir) && !mkdir($sessionDir, 0700, true) && !is_dir($sessionD
     throw new RuntimeException(sprintf('Unable to create MCP session directory: %s', $sessionDir));
 }
 
+$rootFolderId = new DriveId($config->rootFolderId);
+$tokenProvider = new GoogleAccessTokenProvider(
+    $config->googleApplicationCredentials,
+    GoogleAccessTokenProvider::createFilesystemCache($sessionDir),
+);
+$gateway = new GoogleHttpGateway(HttpClient::create(), $tokenProvider);
+$metadataReader = new GoogleDriveMetadataReader($gateway);
+$textReader = new GoogleDocumentTextReader($gateway);
+$policy = new RootFolderPolicy($metadataReader, $rootFolderId);
+$listDocuments = new ListDocuments($metadataReader, $policy, $rootFolderId);
+$getDocumentContent = new GetDocumentContent($textReader, $policy, $config->maxReadChars);
+
 $container = new Container();
 $container->set(DocsConfig::class, $config);
+$container->set(DriveMetadataReader::class, $metadataReader);
+$container->set(DocumentTextReader::class, $textReader);
+$container->set(RootFolderPolicy::class, $policy);
+$container->set(ListDocuments::class, $listDocuments);
+$container->set(GetDocumentContent::class, $getDocumentContent);
 
 $referenceHandler = new GuardedReferenceHandler(
     new ReferenceHandler($container),
